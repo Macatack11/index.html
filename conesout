@@ -1,1 +1,1956 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0d1f35">
+<title>ConesOut</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" href="icon-192.png">
+<script>
+/* On-page error reporter — installed before any app code runs, so ANY JS error anywhere
+   (including ones that would otherwise fail silently) shows up as a visible banner on the
+   page itself. No DevTools needed: just screenshot the app. */
+(function(){
+  var errorLog = [];
+  function renderBanner(){
+    var el = document.getElementById("__err_banner__");
+    if(!el){
+      el = document.createElement("div");
+      el.id = "__err_banner__";
+      el.style.cssText = "position:fixed;top:0;left:0;right:0;z-index:99999;background:#3a0d0d;color:#ffb3b3;font:12px/1.4 monospace;padding:10px 12px;max-height:45vh;overflow:auto;border-bottom:3px solid #ff5d5d;white-space:pre-wrap;";
+      document.addEventListener("DOMContentLoaded", function(){ document.body.appendChild(el); });
+      if(document.body) document.body.appendChild(el);
+    }
+    el.textContent = "APP ERROR (" + errorLog.length + ") — screenshot this banner:\n\n" + errorLog.join("\n---\n");
+  }
+  window.addEventListener("error", function(e){
+    errorLog.push((e.message || "Unknown error") + "\nat " + (e.filename || "?") + ":" + (e.lineno || "?") + ":" + (e.colno || "?"));
+    renderBanner();
+  });
+  window.addEventListener("unhandledrejection", function(e){
+    errorLog.push("Unhandled promise rejection: " + (e.reason && e.reason.message ? e.reason.message : e.reason));
+    renderBanner();
+  });
+})();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+:root{
+  --navy1:#0d1f35;
+  --navy2:#111827;
+  --navy3:#1e2d45;
+  --cyan:#32CCFE;
+  --cyan-dim:#1c8fb0;
+  --text:#e8f1f8;
+  --muted:#8fa3bd;
+  --red:#ff5d5d;
+  --amber:#ffb547;
+  --green:#4ade80;
+  --border:#2a3d5c;
+  --radius:12px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;overflow:hidden;overscroll-behavior:none;}
+body{
+  background:var(--navy1);
+  color:var(--text);
+  font-family:'Barlow',sans-serif;
+  font-size:16px;
+  line-height:1.4;
+}
+h1,h2,h3,h4,.heading{
+  font-family:'Barlow Condensed',sans-serif;
+  font-weight:600;
+  letter-spacing:0.3px;
+}
+/* App shell is a fixed-height flex column: header (auto) / scrollable content (flex:1) / action bar (auto) / bottom nav (auto).
+   Only #screen-container scrolls. Nothing can ever be hidden behind the bottom nav because the nav is a normal
+   flex item taking real space, not an overlay — this replaces the earlier padding-based approach entirely. */
+#app-shell{
+  max-width:480px;
+  margin:0 auto;
+  height:100vh;
+  height:100dvh;
+  display:flex;
+  flex-direction:column;
+  background:var(--navy1);
+  overflow:hidden;
+}
+#screen-container{
+  flex:1 1 auto;
+  min-height:0; /* required for flex children to actually scroll instead of overflowing */
+  overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+}
+.hidden{display:none !important;}
+.screen{display:none;padding:16px 16px 24px;}
+.screen.active{display:block;}
 
+/* ---------- Login ---------- */
+#login-overlay{
+  position:fixed;inset:0;z-index:500;
+  background:radial-gradient(circle at 50% 20%, var(--navy3), var(--navy1) 70%);
+  display:flex;align-items:center;justify-content:center;
+  padding:24px;
+}
+.login-card{
+  width:100%;max-width:360px;
+  background:var(--navy2);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:28px 24px;
+}
+.login-logo{
+  text-align:center;margin-bottom:22px;
+}
+.login-logo .mark{
+  font-family:'Barlow Condensed',sans-serif;
+  font-size:34px;font-weight:700;color:var(--cyan);
+  letter-spacing:1px;
+}
+.login-logo .sub{color:var(--muted);font-size:13px;margin-top:2px;}
+.field{margin-bottom:14px;}
+.field label{
+  display:block;font-size:12px;color:var(--muted);
+  text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;
+}
+.field input, .field select, .field textarea{
+  width:100%;
+  background:var(--navy3);
+  border:1px solid var(--border);
+  color:var(--text);
+  border-radius:8px;
+  padding:12px 12px;
+  font-size:16px;
+  font-family:inherit;
+}
+.field input:focus, .field select:focus, .field textarea:focus{
+  outline:none;border-color:var(--cyan);
+}
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;
+  gap:8px;
+  border:none;border-radius:10px;
+  padding:13px 18px;
+  font-family:'Barlow Condensed',sans-serif;
+  font-size:17px;font-weight:600;letter-spacing:0.4px;
+  cursor:pointer;
+  width:100%;
+}
+.btn-primary{background:var(--cyan);color:#05202b;}
+.btn-primary:disabled{background:var(--navy3);color:var(--muted);cursor:not-allowed;}
+.btn-secondary{background:var(--navy3);color:var(--text);border:1px solid var(--border);}
+.btn-danger{background:var(--red);color:#2b0505;}
+.btn-ghost{background:transparent;color:var(--cyan);border:1px solid var(--cyan-dim);}
+.btn-sm{padding:9px 12px;font-size:14px;width:auto;}
+#login-error{
+  color:var(--red);font-size:13px;margin-top:10px;min-height:16px;text-align:center;
+}
+.login-hint{
+  margin-top:16px;text-align:center;color:var(--muted);font-size:12px;
+}
+</style>
+</head>
+<body>
+<div id="app-shell">
+
+<!-- ================= LOGIN OVERLAY ================= -->
+<div id="login-overlay">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="mark">ConesOut<span style="font-size:16px;vertical-align:top;">&reg;</span></div>
+      <div class="sub">Road Works Setup Assistant</div>
+    </div>
+    <form id="login-form">
+      <div class="field">
+        <label for="login-username">Username</label>
+        <input type="text" id="login-username" autocomplete="username" autocapitalize="none" required>
+      </div>
+      <div class="field">
+        <label for="login-passcode">Passcode</label>
+        <input type="password" id="login-passcode" autocomplete="current-password" required>
+      </div>
+      <button type="submit" class="btn btn-primary" id="login-submit-btn">Log In</button>
+      <div id="login-error"></div>
+    </form>
+    <div class="login-hint">CoP 2013 &amp; Chapter 8 compliant setup guidance</div>
+    <div class="login-hint" style="margin-top:6px;font-size:11px;">Logging in means you accept the ConesOut Terms of Use (Reference tab). ConesOut supports trained operatives - it is not a substitute for your qualifications, your training, or your own judgement on site.</div>
+  </div>
+</div>
+<style>
+/* ---------- Top bar ---------- */
+#top-bar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 16px;border-bottom:1px solid var(--border);
+  background:var(--navy1);flex-shrink:0;
+}
+#top-bar .brand{font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700;color:var(--cyan);}
+#top-bar .user-chip{font-size:12px;color:var(--muted);text-align:right;}
+#top-bar .user-chip button{
+  background:none;border:none;color:var(--red);font-size:12px;
+  text-decoration:underline;cursor:pointer;padding:0;margin-top:2px;font-family:inherit;
+}
+
+/* ---------- Generic ---------- */
+.card{
+  background:var(--navy2);border:1px solid var(--border);
+  border-radius:var(--radius);padding:16px;margin-bottom:14px;
+}
+.section-title{
+  font-size:13px;text-transform:uppercase;letter-spacing:0.6px;
+  color:var(--cyan);margin-bottom:10px;font-weight:600;
+}
+.row{display:flex;gap:10px;flex-wrap:wrap;}
+.static-field{
+  background:var(--navy3);border:1px solid var(--border);border-radius:8px;
+  padding:12px;color:var(--muted);font-size:14px;
+}
+
+/* ---------- Selectable groups ---------- */
+.opt-group{display:flex;flex-direction:column;gap:8px;}
+.opt-btn{
+  background:var(--navy3);border:1px solid var(--border);color:var(--text);
+  border-radius:9px;padding:12px 14px;text-align:left;font-size:15px;
+  cursor:pointer;font-family:'Barlow',sans-serif;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.opt-btn.selected{border-color:var(--cyan);background:rgba(50,204,254,0.12);color:var(--cyan);font-weight:600;}
+.opt-btn .tick{opacity:0;color:var(--cyan);}
+.opt-btn.selected .tick{opacity:1;}
+
+.chip-row{display:flex;gap:8px;flex-wrap:wrap;}
+.chip{
+  background:var(--navy3);border:1px solid var(--border);color:var(--text);
+  border-radius:20px;padding:9px 16px;font-size:14px;cursor:pointer;
+  font-family:'Barlow Condensed',sans-serif;font-weight:600;
+}
+.chip.selected{background:var(--cyan);color:#05202b;border-color:var(--cyan);}
+
+.speed-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;}
+.speed-dial{
+  aspect-ratio:1;width:100%;padding:0;
+  border-radius:50%;
+  background:var(--navy3);border:1px solid var(--border);color:var(--text);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:16px;
+  cursor:pointer;
+}
+.speed-dial.selected{background:var(--cyan);color:#05202b;border-color:var(--cyan);box-shadow:0 0 0 3px rgba(50,204,254,0.18);}
+.speed-unit{text-align:center;color:var(--muted);font-size:11.5px;margin-top:8px;letter-spacing:0.4px;text-transform:uppercase;}
+
+.toggle-row{display:flex;border:1px solid var(--border);border-radius:9px;overflow:hidden;}
+.toggle-row button{
+  flex:1;background:var(--navy3);color:var(--muted);border:none;
+  padding:11px 8px;font-size:13.5px;cursor:pointer;font-family:'Barlow',sans-serif;
+  border-right:1px solid var(--border);
+}
+.toggle-row button:last-child{border-right:none;}
+.toggle-row button.selected{background:var(--cyan);color:#05202b;font-weight:600;}
+
+.check-row{display:flex;align-items:center;gap:10px;padding:4px 0;}
+.check-row input[type=checkbox]{width:20px;height:20px;accent-color:var(--cyan);}
+.check-row label{font-size:14px;color:var(--text);}
+
+.warning-banner{
+  background:rgba(255,93,93,0.12);border:1px solid var(--red);
+  color:#ffb3b3;border-radius:9px;padding:12px 14px;font-size:13.5px;
+  margin-bottom:14px;display:flex;gap:8px;align-items:flex-start;
+}
+.warning-banner b{color:var(--red);}
+
+.info-banner{
+  background:rgba(255,181,71,0.1);border:1px solid var(--amber);
+  color:var(--amber);border-radius:9px;padding:12px 14px;font-size:13.5px;
+  margin-bottom:14px;
+}
+
+/* ---------- Bottom nav ---------- */
+#bottom-nav{
+  flex-shrink:0;
+  background:var(--navy2);border-top:1px solid var(--border);
+  display:flex;padding:6px 4px calc(6px + env(safe-area-inset-bottom));
+}
+.nav-btn{
+  flex:1;background:none;border:none;color:var(--muted);
+  display:flex;flex-direction:column;align-items:center;gap:3px;
+  padding:8px 2px;cursor:pointer;font-family:'Barlow Condensed',sans-serif;
+  font-size:12px;font-weight:600;letter-spacing:0.3px;
+}
+.nav-btn .ic{font-size:19px;line-height:1;}
+.nav-btn.active{color:var(--cyan);}
+
+/* Action bar: persistent primary-action strip between the scrollable content and the bottom nav.
+   Always on screen without scrolling, on whichever screen it belongs to. */
+.action-bar{
+  flex-shrink:0;display:none;
+  padding:12px 16px;background:var(--navy1);border-top:1px solid var(--border);
+}
+.action-bar.active{display:block;}
+
+/* ---------- Guide screen ---------- */
+.guide-category{margin-bottom:16px;}
+.guide-category h3{
+  font-size:16px;color:var(--cyan);margin-bottom:8px;
+  display:flex;align-items:center;gap:8px;
+}
+.guide-item{
+  display:flex;gap:10px;align-items:flex-start;
+  background:var(--navy2);border:1px solid var(--border);
+  border-radius:9px;padding:11px 12px;margin-bottom:7px;font-size:14px;
+}
+.guide-item input[type=checkbox]{margin-top:2px;width:19px;height:19px;flex-shrink:0;accent-color:var(--cyan);}
+.guide-item.checked{opacity:0.5;text-decoration:line-through;}
+.guide-item .gi-dist{color:var(--cyan);font-weight:600;white-space:nowrap;font-family:'Barlow Condensed',sans-serif;}
+
+/* ---------- Diagram ---------- */
+.diagram-toggle{display:flex;gap:8px;margin-bottom:10px;}
+.diagram-wrap{
+  background:var(--navy2);border:1px solid var(--border);border-radius:var(--radius);
+  padding:10px;overflow:hidden;
+}
+.diagram-wrap svg{width:100%;height:auto;display:block;}
+.legend{display:flex;flex-wrap:wrap;gap:8px 14px;margin-top:10px;font-size:12px;color:var(--muted);}
+.legend span{display:inline-flex;align-items:center;gap:5px;}
+.legend i{width:10px;height:10px;border-radius:2px;display:inline-block;}
+
+/* ---------- Walk-out ---------- */
+.walkout-hero{
+  background:var(--navy2);border:1px solid var(--cyan-dim);border-radius:var(--radius);
+  padding:20px;text-align:center;margin-bottom:14px;
+}
+.walkout-hero .sign-name{font-size:22px;color:var(--cyan);font-family:'Barlow Condensed',sans-serif;font-weight:700;}
+.walkout-hero .dist-num{font-size:52px;font-weight:700;font-family:'Barlow Condensed',sans-serif;margin:8px 0;}
+.walkout-hero .dist-unit{color:var(--muted);font-size:14px;}
+.walkout-hero .arrow{font-size:30px;color:var(--cyan);margin:4px 0;}
+.manual-btns{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px;}
+.manual-btns button{
+  background:var(--navy3);border:1px solid var(--border);color:var(--text);
+  border-radius:8px;padding:10px 4px;font-size:13px;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-weight:600;
+}
+.progress-track{
+  background:var(--navy3);border-radius:6px;height:10px;overflow:hidden;margin-bottom:6px;
+}
+.progress-fill{background:var(--cyan);height:100%;transition:width .3s;}
+.progress-label{font-size:12px;color:var(--muted);text-align:center;margin-bottom:14px;}
+.act-row{display:flex;gap:10px;}
+.gps-status{font-size:12px;color:var(--muted);text-align:center;margin-bottom:10px;}
+.gps-status.live{color:var(--green);}
+.gps-status.stale{color:var(--amber);}
+
+/* ---------- Site record ---------- */
+.photo-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px;}
+.photo-slot{
+  aspect-ratio:1;background:var(--navy3);border:1px dashed var(--border);
+  border-radius:8px;display:flex;align-items:center;justify-content:center;
+  font-size:22px;color:var(--muted);cursor:pointer;overflow:hidden;position:relative;
+}
+.photo-slot img{width:100%;height:100%;object-fit:cover;}
+.photo-slot .rm{
+  position:absolute;top:2px;right:2px;background:rgba(0,0,0,0.6);color:#fff;
+  border:none;border-radius:50%;width:18px;height:18px;font-size:11px;cursor:pointer;
+}
+
+/* ---------- Reference ---------- */
+.ref-table{width:100%;border-collapse:collapse;font-size:13.5px;margin-bottom:6px;}
+.ref-table th,.ref-table td{
+  border:1px solid var(--border);padding:8px 6px;text-align:center;
+}
+.ref-table th{background:var(--navy3);color:var(--cyan);font-family:'Barlow Condensed',sans-serif;font-weight:600;}
+.ref-nav{display:flex;gap:6px;overflow-x:auto;margin-bottom:14px;padding-bottom:4px;}
+.ref-nav button{
+  flex-shrink:0;background:var(--navy3);border:1px solid var(--border);color:var(--muted);
+  border-radius:16px;padding:7px 14px;font-size:13px;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-weight:600;
+}
+.ref-nav button.selected{background:var(--cyan);color:#05202b;border-color:var(--cyan);}
+.ref-panel{display:none;}
+.ref-panel.active{display:block;}
+.sign-ref{
+  background:var(--navy2);border:1px solid var(--border);border-radius:9px;
+  padding:12px;margin-bottom:8px;font-size:13.5px;
+}
+.sign-ref b{color:var(--cyan);display:block;margin-bottom:3px;font-family:'Barlow Condensed',sans-serif;font-size:15px;}
+
+/* ---------- Admin ---------- */
+#admin-panel table{width:100%;font-size:13px;border-collapse:collapse;}
+#admin-panel td,#admin-panel th{padding:6px 4px;border-bottom:1px solid var(--border);text-align:left;}
+
+.spacer-sm{height:8px;}
+.spacer{height:16px;}
+.muted{color:var(--muted);}
+.center{text-align:center;}
+</style>
+<div id="top-bar">
+  <div class="brand">ConesOut<span style="font-size:11px;vertical-align:top;">&reg;</span></div>
+  <div class="user-chip">
+    <div id="user-display">-</div>
+    <button type="button" id="logout-btn">Log out</button>
+  </div>
+</div>
+
+<div id="screen-container">
+
+<!-- ================= HOME ================= -->
+<div class="screen active" id="screen-home">
+
+  <div class="card">
+    <div class="section-title">Road Type</div>
+    <div class="opt-group" id="group-roadtype">
+      <button type="button" class="opt-btn" data-value="urban"><span>Urban / Residential</span><span class="tick">&#10003;</span></button>
+      <button type="button" class="opt-btn" data-value="rural"><span>Rural Single Carriageway</span><span class="tick">&#10003;</span></button>
+      <button type="button" class="opt-btn" data-value="dual"><span>Dual Carriageway</span><span class="tick">&#10003;</span></button>
+      <button type="button" class="opt-btn" data-value="motorway"><span>Motorway</span><span class="tick">&#10003;</span></button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="section-title">Speed Limit</div>
+    <div class="speed-grid" id="group-speed">
+      <button type="button" class="speed-dial" data-value="20" aria-label="20 mph">20</button>
+      <button type="button" class="speed-dial" data-value="30" aria-label="30 mph">30</button>
+      <button type="button" class="speed-dial" data-value="40" aria-label="40 mph">40</button>
+      <button type="button" class="speed-dial" data-value="50" aria-label="50 mph">50</button>
+      <button type="button" class="speed-dial" data-value="60" aria-label="60 mph">60</button>
+      <button type="button" class="speed-dial" data-value="70" aria-label="70 mph">70</button>
+    </div>
+    <div class="speed-unit">mph</div>
+  </div>
+
+  <div class="card">
+    <div class="section-title">Works Duration</div>
+    <div class="toggle-row" id="group-duration">
+      <button type="button" data-value="short">Less than 15 min</button>
+      <button type="button" data-value="long">More than 15 min</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="section-title">Works Impact</div>
+    <div class="opt-group" id="group-impact">
+      <button type="button" class="opt-btn" data-value="half"><span>Half Road</span><span class="tick">&#10003;</span></button>
+      <button type="button" class="opt-btn" data-value="full"><span>Full Closure</span><span class="tick">&#10003;</span></button>
+      <button type="button" class="opt-btn" data-value="footpath"><span>Footpath Only</span><span class="tick">&#10003;</span></button>
+    </div>
+  </div>
+</div>
+<!-- ================= GUIDE ================= -->
+<div class="screen" id="screen-guide">
+
+  <div id="guide-empty" class="card center muted">
+    No guide generated yet.<br>Go to <b style="color:var(--cyan)">Home</b> and complete the setup selections, then tap Generate Guide.
+  </div>
+
+  <div id="guide-content" class="hidden">
+
+    <div class="card">
+      <div class="section-title">Setup Summary</div>
+      <div id="guide-summary" class="muted" style="font-size:13.5px;"></div>
+    </div>
+
+    <div id="guide-checklist"></div>
+
+    <div class="card">
+      <div class="section-title">Signage Layout</div>
+      <button type="button" class="btn btn-primary" id="openLayoutBtn" style="width:100%;">Open Full Signage Layout</button>
+    </div>
+
+  </div>
+</div>
+<!-- ================= SETUP (Walk-Out + Site Record) ================= -->
+<div class="screen" id="screen-setup">
+
+  <div id="setup-empty" class="card center muted">
+    Generate a guide on the <b style="color:var(--cyan)">Home</b> screen first to unlock Walk-Out mode and the Site Record.
+  </div>
+
+  <div id="setup-content" class="hidden">
+
+    <div class="ref-nav" id="setup-subnav">
+      <button type="button" class="selected" data-panel="walkout">Walk-Out</button>
+      <button type="button" data-panel="record">Site Record</button>
+    </div>
+
+    <!-- Walk-Out panel -->
+    <div class="ref-panel active" id="panel-walkout">
+      <div class="gps-status" id="gps-status">GPS: waiting for signal&hellip;</div>
+
+      <div class="walkout-hero">
+        <div class="sign-name" id="wo-sign-name">-</div>
+        <div class="arrow" id="wo-arrow">&#8593;</div>
+        <div class="dist-num" id="wo-distance">-</div>
+        <div class="dist-unit">metres remaining</div>
+      </div>
+
+      <div class="manual-btns">
+        <button type="button" data-add="1">+1m</button>
+        <button type="button" data-add="5">+5m</button>
+        <button type="button" data-add="10">+10m</button>
+        <button type="button" data-add="25">+25m</button>
+      </div>
+
+      <div class="progress-track"><div class="progress-fill" id="wo-progress-fill" style="width:0%"></div></div>
+      <div class="progress-label" id="wo-progress-label">0 of 0 signs placed</div>
+
+      <div class="act-row">
+        <button type="button" class="btn btn-secondary" id="wo-skip-btn">Skip</button>
+        <button type="button" class="btn btn-primary" id="wo-placed-btn">Placed</button>
+      </div>
+      <div class="spacer-sm"></div>
+      <button type="button" class="btn btn-ghost btn-sm" id="wo-reset-btn">Reset Walk-Out</button>
+    </div>
+
+    <!-- Site Record panel -->
+    <div class="ref-panel" id="panel-record">
+      <div class="card">
+        <div class="section-title">Crew &amp; Job Details</div>
+        <div class="field">
+          <label for="rec-crewlead">Crew Lead Name</label>
+          <input type="text" id="rec-crewlead" placeholder="Name">
+        </div>
+        <div class="field">
+          <label for="rec-permit">Permit / Job Reference</label>
+          <input type="text" id="rec-permit" placeholder="e.g. S50-2026-0142">
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-title">Site GPS Location</div>
+        <div class="static-field" id="rec-gps-display">Not captured</div>
+        <div class="spacer-sm"></div>
+        <button type="button" class="btn btn-secondary btn-sm" id="rec-capture-gps-btn">Capture GPS Location</button>
+      </div>
+
+      <div class="card">
+        <div class="section-title">Site Photos (up to 4)</div>
+        <div class="photo-grid" id="photo-grid">
+          <div class="photo-slot" data-slot="0">+</div>
+          <div class="photo-slot" data-slot="1">+</div>
+          <div class="photo-slot" data-slot="2">+</div>
+          <div class="photo-slot" data-slot="3">+</div>
+        </div>
+        <input type="file" id="photo-input" accept="image/*" capture="environment" class="hidden">
+      </div>
+
+      <button type="button" class="btn btn-primary" id="rec-generate-pdf-btn">Generate PDF Summary</button>
+      <div class="spacer-sm"></div>
+      <div class="muted center" style="font-size:12px;">PDF opens in a new tab &mdash; use your device's share/email option to send it to the office.</div>
+    </div>
+
+  </div>
+</div>
+<!-- ================= REFERENCE ================= -->
+<div class="screen" id="screen-reference">
+
+  <div class="ref-nav" id="ref-subnav">
+    <button type="button" class="selected" data-panel="signs">Signs</button>
+    <button type="button" data-panel="distances">Distances</button>
+    <button type="button" data-panel="checklist">Pre-Works</button>
+    <button type="button" data-panel="regs">Regulations</button>
+    <button type="button" data-panel="special">Special Cases</button>
+  </div>
+
+  <div class="ref-panel active" id="ref-signs">
+    <div class="sign-ref"><b>Road Works Ahead</b>Red triangle warning sign. First sign encountered, placed at the advance warning distance for the road's speed limit.</div>
+    <div class="sign-ref"><b>Speed Roundel</b>Circular sign showing the temporary reduced speed limit, used where the permanent limit is being reduced for the works.</div>
+    <div class="sign-ref"><b>Road Narrows (Both Sides)</b>Triangle sign showing the carriageway narrowing from both sides &mdash; used for the standard lane closure layout.</div>
+    <div class="sign-ref"><b>Keep Right / Keep Left</b>Circular blue sign. Arrow must always point AWAY from the works, directing traffic into the open running lane.</div>
+    <div class="sign-ref"><b>End of Works</b>Placed after the works area to confirm to drivers that the restriction has ended.</div>
+    <div class="sign-ref"><b>Road Closed Ahead</b>Used only for full closures. Placed at both ends of the closure with an approved diversion route signed.</div>
+    <div class="sign-ref"><b>Information Board</b>States the contractor, purpose of works and a contact / helpline number. Required on all sites of more than short duration.</div>
+  </div>
+
+  <div class="ref-panel" id="ref-distances">
+    <p class="muted" style="font-size:12.5px;margin-bottom:8px;">Source: Traffic Signs Manual Chapter 8 (2009), Part 2: Operations, Appendix Tables A1.1 &amp; A1.3 &mdash; standard scheme figures. Distances given as a range in the source are shown here as min&ndash;max; the app uses the safer (upper) figure on-screen.</p>
+    <table class="ref-table">
+      <tr><th>Category</th><th>Sign Siting</th><th>Taper</th><th>Cones</th><th>Cone Size</th><th>End Distance</th></tr>
+      <tr><td>Single, &le;30mph</td><td>20&ndash;45m</td><td>50m</td><td>8</td><td>450mm</td><td>10&ndash;30m</td></tr>
+      <tr><td>Single, 40mph</td><td>45&ndash;110m</td><td>80m</td><td>28</td><td>450mm</td><td>30&ndash;45m</td></tr>
+      <tr><td>Single, &ge;50mph</td><td>275&ndash;450m</td><td>100m</td><td>68</td><td>750mm</td><td>30&ndash;45m</td></tr>
+      <tr><td>Dual, &le;40mph</td><td>300m</td><td>100m</td><td>35</td><td>450mm</td><td>45m</td></tr>
+      <tr><td>Dual, 50mph</td><td>800m*</td><td>150m</td><td>101</td><td>750mm</td><td>90m</td></tr>
+      <tr><td>Dual, 60mph</td><td>1 mile*</td><td>150m</td><td>101</td><td>750mm</td><td>90m</td></tr>
+      <tr><td>Dual / Motorway, NSL (70mph)</td><td>2 miles*</td><td>200m</td><td>135</td><td>1000mm</td><td>90m</td></tr>
+    </table>
+    <p class="muted" style="font-size:11.5px;margin-top:4px;">* Increase siting distance further where congestion is likely (dual 50mph: 1 mile; dual 60mph: 2 miles; national speed limit: 3 miles). Cone taper spacing: 1.5m on roads &ge;50mph, 3m below that. Warning light spacing on tapers: 9m throughout. These are standard-scheme figures; reduced "relaxation scheme" figures exist for short-term, low-flow, good-visibility sites and are not modelled in this app &mdash; refer to a manager if you believe relaxation applies.</p>
+  </div>
+
+  <div class="ref-panel" id="ref-checklist">
+    <div class="sign-ref"><b>Before Setting Out (CoP 2013 p.12-14)</b>
+      Check permit / Section 50 licence is valid for the location and dates &middot;
+      Full PPE and hi-vis worn by all crew &middot;
+      Vehicle amber beacon operational &middot;
+      Sufficient signs, cones and sandbags loaded &middot;
+      Check for nearby schools and note peak times (8-9am, 3-4pm) &middot;
+      Assess parked cars and street obstructions &middot;
+      Confirm no bend or restricted sight line issues, or that manager sign-off has been obtained.
+    </div>
+  </div>
+
+  <div class="ref-panel" id="ref-regs">
+    <div class="sign-ref"><b>Governing Documents</b>Setup guidance in this app follows the "Safety at Street Works" Code of Practice 2013 and the Traffic Signs Manual Chapter 8. These documents take precedence over this app in the event of any discrepancy.</div>
+    <div class="sign-ref"><b>Records</b>A site record (crew, permit reference, GPS location, photographs and time) should be kept for every job and retained per your company's record-keeping policy.</div>
+  </div>
+
+  <div class="ref-panel" id="ref-special">
+    <div class="sign-ref"><b>Temporary Traffic Signals</b>Not covered by this app's automated guidance. Refer to your manager and the Chapter 8 reference guide before installing temporary traffic lights.</div>
+    <div class="sign-ref"><b>Bends &amp; Restricted Sight Lines</b>Where visibility is reduced, standard distances may not be sufficient. Refer to manager before proceeding.</div>
+    <div class="sign-ref"><b>Night-Time &amp; Unattended Sites</b>Warning lights must be fitted to cones/barriers at the taper and works boundary. Check local lighting-up times. Unattended sites overnight require illuminated warning lamps to remain in place and functioning.</div>
+
+    <div class="sign-ref"><b>ConesOut Terms of Use</b>
+      <br><b>Who ConesOut is for.</b> ConesOut is built for qualified street works operatives and their supervisors. Using it does not make anyone qualified: you must hold current NRSWA accreditation (or the equivalent required in your region) and work within your employer's safe systems of work. If you are not qualified to set out signing, lighting and guarding, do not rely on this app to do so.
+      <br><br><b>What ConesOut is - and is not.</b> ConesOut turns your selections into a suggested setup based on published UK guidance. It is a planning and memory aid, nothing more. It cannot see your site. Every job needs its own risk assessment, and a competent person must walk the site and confirm the setup before work starts. Where anything in this app differs from the Safety at Street Works Code of Practice (2013), the Traffic Signs Manual Chapter 8, current legislation, or an instruction for your specific site, those sources win - always. In Northern Ireland, follow the corresponding NI legislation and TSR(NI).
+      <br><br><b>Your responsibilities.</b> You are responsible for the decisions you make on site, for checking that ConesOut's output suits the actual conditions in front of you, and for stopping and referring to your manager whenever something on site does not match what the app assumes - bends, restricted visibility, signals, high-speed dual carriageways and motorways included.
+      <br><br><b>Our position.</b> ConesOut is provided by Courseway Ltd as is, without warranty of any kind. To the fullest extent the law allows, Courseway Ltd accepts no liability for loss, damage, injury or enforcement action arising from use of, or reliance on, this app. Nothing here excludes or limits any liability that cannot lawfully be excluded or limited.
+      <br><br><b>Sources.</b> ConesOut contains public sector information licensed under the Open Government Licence v3.0, drawn from the Safety at Street Works and Road Works Code of Practice (2013) and the Traffic Signs Manual Chapter 8. Crown copyright is acknowledged. ConesOut and its design are copyright Courseway Ltd.
+      <br><br>Logging in and using ConesOut means you accept these terms.
+    </div>
+
+    <div class="sign-ref"><b>ConesOut Privacy Notice</b>
+      <br><b>Who we are.</b> ConesOut is operated by Courseway Ltd, which is the data controller for the personal information described below.
+      <br><br><b>What we collect and why.</b> When you log in, your username and passcode are checked against our user database so we can confirm your access. That is the only personal information sent to our servers by this app. We do not run adverts, we do not track you across other apps or websites, and we do not sell or rent your information to anyone.
+      <br><br><b>What stays on your device.</b> GPS location used in Walk-Out mode, site photos, crew names and site records are processed on your device only. They are placed into the PDF you generate and are not uploaded to us. Your login session is saved on your device so you stay signed in; tapping Sign Out removes it.
+      <br><br><b>Where account data is held.</b> Account records are stored with our database provider (Supabase) and are kept only for as long as your account is active or as the law requires.
+      <br><br><b>Your rights.</b> Under UK data protection law you can ask us for a copy of the information we hold about you, ask us to correct it, or ask us to delete your account and its data. Contact your account administrator or Courseway Ltd to make a request.
+      <br><br><b>Changes.</b> If ConesOut starts collecting anything new - for example usage statistics to improve the app - this notice will be updated first and the change will be flagged in the app.
+    </div>
+  </div>
+
+</div>
+
+</div><!-- /#screen-container -->
+
+<!-- ================= ACTION BAR (Home only — always visible above the nav, no scrolling required) ================= -->
+<div class="action-bar active" id="home-action-bar">
+  <button type="button" class="btn btn-primary" id="generate-btn" disabled>Generate Guide</button>
+</div>
+
+<!-- ================= BOTTOM NAV ================= -->
+<div id="bottom-nav">
+  <button type="button" class="nav-btn active" data-target="screen-home"><span class="ic">&#8962;</span>Home</button>
+  <button type="button" class="nav-btn" data-target="screen-guide"><span class="ic">&#128203;</span>Guide</button>
+  <button type="button" class="nav-btn" data-target="screen-setup"><span class="ic">&#128205;</span>Setup</button>
+  <button type="button" class="nav-btn" data-target="screen-reference"><span class="ic">&#128218;</span>Reference</button>
+</div>
+
+</div><!-- /#app-shell -->
+<script>
+(function(){
+"use strict";
+
+/* ============================================================
+   CONFIG
+============================================================ */
+var SUPABASE_URL = "https://atclequibobxvftanqsa.supabase.co";
+var SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF0Y2xlcXVpYm9ieHZmdGFucXNhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA5MzcxODMsImV4cCI6MjA5NjUxMzE4M30.1w6FCyLVf3wg7LeOuIpN1_tiN9YRozjs4vgY8bCg2gY";
+var ADMIN_FEATURE_ENABLED = true; // hidden admin screen, switch off by setting false
+
+/* ============================================================
+   STATE
+============================================================ */
+var STATE = {
+  user: null,
+  home: { roadType:null, speed:null, duration:null, impact:null },
+  guide: null,       // built by buildGuideSteps()
+  diagramOrient: "0",
+  walkout: { signs:[], index:0, traveled:0, lastPos:null, watchId:null },
+  record: { crewLead:"", permit:"", gps:null, photos:[null,null,null,null] }
+};
+
+/* ============================================================
+   HELPERS
+============================================================ */
+function qs(sel, root){ return (root||document).querySelector(sel); }
+function qsa(sel, root){ return Array.prototype.slice.call((root||document).querySelectorAll(sel)); }
+function on(el, evt, fn){ if(el) el.addEventListener(evt, fn); }
+function show(el){ if(el) el.classList.remove("hidden"); }
+function hide(el){ if(el) el.classList.add("hidden"); }
+
+/* ============================================================
+   AUTH
+============================================================ */
+function saveSession(user){
+  try{ localStorage.setItem("conesout_session", JSON.stringify(user)); }catch(e){}
+}
+function loadSession(){
+  try{
+    var raw = localStorage.getItem("conesout_session");
+    return raw ? JSON.parse(raw) : null;
+  }catch(e){ return null; }
+}
+function clearSession(){
+  try{ localStorage.removeItem("conesout_session"); }catch(e){}
+}
+
+function doLogin(username, passcode){
+  var url = SUPABASE_URL + "/rest/v1/test_users?username=eq." + encodeURIComponent(username) + "&passcode=eq." + encodeURIComponent(passcode) + "&select=username,passcode,role";
+  return fetch(url, {
+    method: "GET",
+    headers: {
+      "apikey": SUPABASE_ANON_KEY,
+      "Authorization": "Bearer " + SUPABASE_ANON_KEY,
+      "Content-Type": "application/json"
+    }
+  })
+  .then(function(res){
+    if(!res.ok) throw new Error("Login request failed");
+    return res.json();
+  })
+  .then(function(rows){
+    if(!rows || rows.length === 0) throw new Error("Incorrect username or passcode");
+    return rows[0];
+  });
+}
+
+function handleLoginSubmit(evt){
+  evt.preventDefault();
+  var username = qs("#login-username").value.trim();
+  var passcode = qs("#login-passcode").value.trim();
+  var errorEl = qs("#login-error");
+  var btn = qs("#login-submit-btn");
+  errorEl.textContent = "";
+  if(!username || !passcode){
+    errorEl.textContent = "Enter a username and passcode.";
+    return;
+  }
+  btn.disabled = true;
+  btn.textContent = "Logging in...";
+  doLogin(username, passcode)
+    .then(function(user){
+      STATE.user = user;
+      saveSession(user);
+      enterApp();
+    })
+    .catch(function(err){
+      errorEl.textContent = err.message || "Login failed. Check your details and try again.";
+    })
+    .finally(function(){
+      btn.disabled = false;
+      btn.textContent = "Log In";
+    });
+}
+
+function doLogout(){
+  STATE.user = null;
+  clearSession();
+  stopWalkoutWatch();
+  hide(qs("#app-shell"));
+  qs("#app-shell").style.display = "none";
+  show(qs("#login-overlay"));
+  qs("#login-overlay").style.display = "flex";
+  qs("#login-username").value = "";
+  qs("#login-passcode").value = "";
+}
+
+function enterApp(){
+  qs("#login-overlay").style.display = "none";
+  qs("#app-shell").style.display = "block";
+  var label = STATE.user.username + (STATE.user.role === "Admin" ? " (Admin)" : "");
+  qs("#user-display").textContent = label;
+}
+
+/* ============================================================
+   NAVIGATION
+============================================================ */
+function switchScreen(targetId){
+  qsa(".screen").forEach(function(s){ s.classList.remove("active"); });
+  var target = qs("#" + targetId);
+  if(target) target.classList.add("active");
+  qsa(".nav-btn").forEach(function(btn){
+    btn.classList.toggle("active", btn.getAttribute("data-target") === targetId);
+  });
+  var actionBar = qs("#home-action-bar");
+  if(actionBar) actionBar.classList.toggle("active", targetId === "screen-home");
+  if(window.__conesout_pinLayout) window.__conesout_pinLayout();
+  var container = qs("#screen-container");
+  if(container) container.scrollTop = 0;
+}
+
+function initNav(){
+  qsa(".nav-btn").forEach(function(btn){
+    on(btn, "click", function(){
+      switchScreen(btn.getAttribute("data-target"));
+    });
+  });
+}
+
+function initSubnav(navSelector, panelPrefix){
+  var nav = qs(navSelector);
+  if(!nav) return;
+  qsa("button", nav).forEach(function(btn){
+    on(btn, "click", function(){
+      qsa("button", nav).forEach(function(b){ b.classList.remove("selected"); });
+      btn.classList.add("selected");
+      var panelKey = btn.getAttribute("data-panel");
+      qsa(".ref-panel", nav.parentElement).forEach(function(p){ p.classList.remove("active"); });
+      var panel = qs("#" + panelPrefix + panelKey) || qs("#panel-" + panelKey);
+      if(panel) panel.classList.add("active");
+    });
+  });
+}
+
+/* ============================================================
+   INIT (bootstrapped at bottom of script)
+============================================================ */
+window.__conesout_init_auth_nav = function(){
+  on(qs("#login-form"), "submit", handleLoginSubmit);
+  on(qs("#logout-btn"), "click", doLogout);
+  initNav();
+  initSubnav("#ref-subnav", "ref-");
+  initSubnav("#setup-subnav", "panel-");
+
+  var existing = loadSession();
+  if(existing){
+    STATE.user = existing;
+    enterApp();
+  }
+};
+
+window.STATE = STATE;
+window.ADMIN_FEATURE_ENABLED = ADMIN_FEATURE_ENABLED;
+window.SUPABASE_URL = SUPABASE_URL;
+window.SUPABASE_ANON_KEY = SUPABASE_ANON_KEY;
+window.switchScreen = switchScreen;
+window.qs = qs; window.qsa = qsa; window.on = on; window.show = show; window.hide = hide;
+
+})();
+</script>
+<script>
+/* ============================================================
+   DISTANCES TABLE
+   Source: Traffic Signs Manual Chapter 8 (2009), Part 2: Operations,
+   Appendix Table A1.1 (Location and number of approach signs) and
+   Table A1.3 (Recommended spacing and sizes of traffic cones).
+   Values below are the STANDARD-scheme figures for each category
+   (relaxation-scheme figures are lower and are not modelled here).
+   Distances given as ranges in the source are stored as {min,max};
+   the app uses the max (safer/more conservative) value for on-screen
+   distances and for Walk-Out segment lengths.
+============================================================ */
+var TM_TABLE = {
+  single30: {
+    label: "Single carriageway, 30mph or less",
+    sitingMin: 20, sitingMax: 45, clearVis: 60, signSize: 600,
+    endMin: 10, endMax: 30,
+    taper: 50, coneCount: 8, coneSize: 450, taperSpacing: 3, longSpacing: 9, warnLight: 9
+  },
+  single40: {
+    label: "Single carriageway, 40mph",
+    sitingMin: 45, sitingMax: 110, clearVis: 60, signSize: 750,
+    endMin: 30, endMax: 45,
+    taper: 80, coneCount: 28, coneSize: 450, taperSpacing: 3, longSpacing: 9, warnLight: 9
+  },
+  single50plus: {
+    label: "Single carriageway, 50mph or more",
+    sitingMin: 275, sitingMax: 450, clearVis: "75m at 50mph / 90m at 60mph", signSize: 900,
+    endMin: 30, endMax: 45,
+    taper: 100, coneCount: 68, coneSize: 750, taperSpacing: 1.5, longSpacing: 9, warnLight: 9
+  },
+  dual40: {
+    label: "Dual carriageway, 40mph or less",
+    siting: 300, clearVis: 60, signSize: 750, end: 45,
+    taper: 100, coneCount: 35, coneSize: 450, taperSpacing: 3, longSpacing: 9, warnLight: 9
+  },
+  dual50: {
+    label: "Dual carriageway, 50mph",
+    siting: 800, sitingCongestionNote: "1 mile where congestion is likely",
+    clearVis: 75, signSize: 1200, end: 90,
+    taper: 150, coneCount: 101, coneSize: 750, taperSpacing: 1.5, longSpacing: 9, warnLight: 9
+  },
+  dual60: {
+    label: "Dual carriageway, 60mph",
+    siting: 1609, sitingLabel: "1 mile", sitingCongestionNote: "2 miles where congestion is likely",
+    clearVis: 90, signSize: 1500, end: 90,
+    taper: 150, coneCount: 101, coneSize: 750, taperSpacing: 1.5, longSpacing: 9, warnLight: 9
+  },
+  dualNational: {
+    label: "Dual carriageway / motorway, national speed limit (70mph)",
+    siting: 3219, sitingLabel: "2 miles", sitingCongestionNote: "3 miles where congestion is likely",
+    clearVis: 120, signSize: 1500, end: 90,
+    taper: 200, coneCount: 135, coneSize: 1000, taperSpacing: 1.5, longSpacing: 9, warnLight: 9
+  }
+};
+
+// Maps the app's Home-screen selections onto the Table A1.1 / A1.3 category above.
+function getTMCategory(h){
+  var speed = Number(h.speed); // defensive: strict-equality checks below need a real Number
+  if(h.roadType === "dual"){
+    if(speed <= 40) return TM_TABLE.dual40;
+    if(speed === 50) return TM_TABLE.dual50;
+    if(speed === 60) return TM_TABLE.dual60;
+    return TM_TABLE.dualNational; // 70mph
+  }
+  if(h.roadType === "motorway"){
+    return TM_TABLE.dualNational; // motorways carry the national speed limit
+  }
+  // urban / rural = single carriageway
+  if(speed <= 30) return TM_TABLE.single30;
+  if(speed === 40) return TM_TABLE.single40;
+  return TM_TABLE.single50plus; // 50/60/70mph on a single carriageway
+}
+
+function tmSitingDistance(cat){
+  // Returns the recommended (upper/safer) siting distance as a plain number of metres for on-screen use.
+  if(cat.sitingMax !== undefined) return cat.sitingMax;
+  return cat.siting;
+}
+function tmSitingLabel(cat){
+  if(cat.sitingLabel) return cat.sitingLabel;
+  return tmSitingDistance(cat) + "m";
+}
+function tmEndDistance(cat){
+  if(cat.endMax !== undefined) return cat.endMax;
+  return cat.end;
+}
+
+var ROAD_LABELS = { urban:"Urban / Residential", rural:"Rural Single Carriageway", dual:"Dual Carriageway", motorway:"Motorway" };
+var IMPACT_LABELS = { half:"Half Road", full:"Full Closure", footpath:"Footpath Only" };
+
+/* ============================================================
+   HOME SCREEN — selection handling
+============================================================ */
+function initHomeGroup(groupId, stateKey, activeClass){
+  var group = qs("#" + groupId);
+  if(!group) return;
+  qsa("button", group).forEach(function(btn){
+    on(btn, "click", function(){
+      qsa("button", group).forEach(function(b){ b.classList.remove(activeClass); });
+      btn.classList.add(activeClass);
+      var raw = btn.getAttribute("data-value");
+      // "speed" is compared with strict equality (===) elsewhere in getTMCategory(),
+      // so it must be stored as a real Number, not the string data-value attribute gives us.
+      STATE.home[stateKey] = (stateKey === "speed") ? Number(raw) : raw;
+      refreshGenerateButton();
+    });
+  });
+}
+
+function refreshGenerateButton(){
+  var h = STATE.home;
+  var complete = h.roadType && h.speed && h.duration && h.impact;
+  qs("#generate-btn").disabled = !complete;
+}
+
+function initHomeScreen(){
+  initHomeGroup("group-roadtype", "roadType", "selected");
+  initHomeGroup("group-speed", "speed", "selected");
+  initHomeGroup("group-duration", "duration", "selected");
+  initHomeGroup("group-impact", "impact", "selected");
+
+  on(qs("#generate-btn"), "click", function(){
+    try{
+      STATE.guide = buildGuideSteps(STATE.home);
+      renderGuideSummary();
+      renderGuideChecklist(STATE.guide);
+      buildWalkoutSigns();
+      show(qs("#guide-content"));
+      hide(qs("#guide-empty"));
+      show(qs("#setup-content"));
+      hide(qs("#setup-empty"));
+      switchScreen("screen-guide");
+    }catch(err){
+      console.error("Generate Guide failed:", err);
+      alert("Something went wrong generating the guide: " + (err && err.message ? err.message : err) + "\n\nPlease use the thumbs-down button to report this.");
+    }
+  });
+}
+
+/* ============================================================
+   GUIDE GENERATION
+============================================================ */
+function buildGuideSteps(h){
+  var cat = getTMCategory(h);
+  var cats = [];
+
+  // 1. Pre-works checks (CoP 2013 p.12-14 + Chapter 8 Part 2 O3.6.1/O6.3)
+  var preItems = [
+    { text:"Confirm permit / Section 50 licence covers this location and date." },
+    { text:"Full hi-vis PPE worn by all crew — BS EN ISO 20471 Class 2, or Class 3 on motorways / other high-speed roads." },
+    { text:"Load sufficient signs, cones, barriers and sandbags for ballasting." },
+    { text:"Check for nearby schools — note peak times 8-9am and 3-4pm if applicable." },
+    { text:"Assess parked cars and street obstructions before setting out — note any issues in the Site Record." },
+    { text:"Works vehicle: amber beacon on, parked nearside, crew exit on passenger side only." },
+    { text:"Maintain minimum lateral safety clearance between the works and the live carriageway.", dist: (h.speed >= 50 ? "1.2m" : "0.5m") }
+  ];
+  if(h.duration === "short"){
+    preItems.push({ text:"Reduced signing (beacon only, no advance signs) is only permitted where ALL apply: permanent limit \u226430mph, two-way flow <400 veh/hr, <20 HGVs/hr, and the beacon is visible for 50m on each approach. Otherwise full signing is required even for short stops." });
+  }
+  cats.push({ title:"Pre-Works Checks", items:preItems });
+
+  // 2. Advance warning
+  var warnItems = [
+    { text:"Position \"Road Works Ahead\" sign at the advance siting distance for this road category.", dist: tmSitingLabel(cat) },
+    { text:"Confirm clear visibility of the sign from approaching traffic.", dist: cat.clearVis + (typeof cat.clearVis === "number" ? "m" : "") }
+  ];
+  if(h.roadType !== "motorway"){
+    warnItems.push({ text:"Position speed roundel sign if the temporary speed limit is reduced from the permanent limit." });
+  }
+  if(cat.sitingCongestionNote){
+    warnItems.push({ text:"Where congestion on approach is likely, increase the siting distance further.", dist: cat.sitingCongestionNote });
+  }
+  cats.push({ title:"Advance Warning Signing", items:warnItems });
+
+  // 3. Lead-in taper
+  cats.push({ title:"Lead-In Taper", items:[
+    { text:"Position \"Road Narrows\" (both-sides) sign ahead of the taper." },
+    { text:"Run the cone taper at the standard length for this road category.", dist: cat.taper + "m" },
+    { text:"Minimum number of cones through the taper.", dist: String(cat.coneCount) },
+    { text:"Minimum cone height for this road category.", dist: cat.coneSize + "mm" },
+    { text:"Maximum cone spacing within the taper.", dist: cat.taperSpacing + "m" },
+    { text:"Ballast all cones and freestanding signs with sandbags, particularly in wind." },
+    { text:"Setting out starts with the advance \"Road Works Ahead\" sign, then works inward toward the site — sign the site in the sequence you'll walk it." }
+  ]});
+
+  // 4. Impact-specific
+  if(h.impact === "half"){
+    cats.push({ title:"Half Road Closure", items:[
+      { text:"Position Keep Right / Keep Left sign with the arrow pointing AWAY from the works, into the open lane.", dist: cat.signSize + "mm" },
+      { text:"Install barriers along the works boundary." },
+      { text:"Maintain longitudinal clearance between the taper and the works area.", dist: cat.taper + "m" }
+    ]});
+  } else if(h.impact === "full"){
+    cats.push({ title:"Full Closure", items:[
+      { text:"Position \"Road Closed Ahead\" signs at both ends of the closure.", dist: cat.signSize + "mm" },
+      { text:"Run a cone taper at both ends of the closure." },
+      { text:"Install kerb-to-kerb barriers across the full closed section." },
+      { text:"Sign an approved diversion route for the duration of the closure." },
+      { text:"Maintain a buffer zone between the taper and the closed works area." }
+    ]});
+  } else if(h.impact === "footpath"){
+    cats.push({ title:"Footpath Only", items:[
+      { text:"Install continuous barriers around the full extent of the works — traffic cones alone are not an acceptable pedestrian barrier." },
+      { text:"Maintain temporary pedestrian route width — 1.5m preferred, 1.2m minimum, 1.0m absolute minimum in exceptional circumstances only.", dist:"1.0-1.5m" },
+      { text:"Sign a pedestrian diversion route if the footpath cannot be safely passed." }
+    ]});
+  }
+
+  // 5. Temporary traffic signals note
+  cats.push({ title:"Temporary Traffic Signals", items:[
+    { text:"If temporary traffic signals are required for this site, do not install without approval — refer to manager and the Chapter 8 reference guide." }
+  ]});
+
+  // 6. Site conditions — considerations to check on site, not pre-declared on Home
+  cats.push({ title:"Site Conditions — Check Before Setting Out", items:[
+    { text:"Is the road on a bend or does it have restricted / dangerous sight lines? If so, refer to manager and see Chapter 8 Reference Guide before proceeding — standard distances above may not be sufficient." },
+    { text:"Will works continue into darkness? If so: fit amber warning lights to cones/barriers along the taper.", dist: cat.warnLight + "m spacing" },
+    { text:"Night-time: check local lighting-up times before finishing setup." },
+    { text:"Night-time: if the site will be left unattended overnight, confirm illuminated warning lamps remain in place and functioning." }
+  ]});
+
+  // 7. Final items
+  cats.push({ title:"Information & Closeout", items:[
+    { text:"Position information board showing contractor name, purpose of works and contact number." },
+    { text:"Walk the full length of the site to confirm every sign, cone and barrier is correctly placed." },
+    { text:"Complete the Site Record — crew, permit reference, GPS location and photographs." },
+    { text:"Removal is the reverse of setup: take down the End of Works sign first and work back out, removing the Road Works Ahead sign LAST for maximum protection while the crew is on site." }
+  ]});
+
+  return { categories: cats, category: cat };
+}
+
+function renderGuideSummary(){
+  var h = STATE.home;
+  var parts = [
+    ROAD_LABELS[h.roadType], h.speed + " mph",
+    (h.duration === "short" ? "Under 15 min" : "Over 15 min"),
+    IMPACT_LABELS[h.impact]
+  ];
+  qs("#guide-summary").textContent = parts.join(" • ");
+}
+
+function renderGuideChecklist(guide){
+  var container = qs("#guide-checklist");
+  container.innerHTML = "";
+  guide.categories.forEach(function(cat, ci){
+    var catEl = document.createElement("div");
+    catEl.className = "guide-category";
+    var h3 = document.createElement("h3");
+    h3.textContent = cat.title;
+    catEl.appendChild(h3);
+    cat.items.forEach(function(item, ii){
+      var row = document.createElement("label");
+      row.className = "guide-item";
+      row.setAttribute("for", "gi-" + ci + "-" + ii);
+      var cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.id = "gi-" + ci + "-" + ii;
+      on(cb, "change", function(){ row.classList.toggle("checked", cb.checked); });
+      var span = document.createElement("span");
+      span.textContent = item.text;
+      row.appendChild(cb);
+      row.appendChild(span);
+      if(item.dist){
+        var distEl = document.createElement("span");
+        distEl.className = "gi-dist";
+        distEl.textContent = item.dist;
+        row.appendChild(distEl);
+      }
+      catEl.appendChild(row);
+    });
+    container.appendChild(catEl);
+  });
+}
+
+window.buildGuideSteps = buildGuideSteps;
+window.TM_TABLE = TM_TABLE;
+window.getTMCategory = getTMCategory;
+window.tmSitingDistance = tmSitingDistance;
+window.tmSitingLabel = tmSitingLabel;
+window.tmEndDistance = tmEndDistance;
+window.ROAD_LABELS = ROAD_LABELS;
+window.IMPACT_LABELS = IMPACT_LABELS;
+window.initHomeScreen = initHomeScreen;
+</script>
+<script>
+/* ============================================================
+   VISUAL LAYOUT DIAGRAM (schematic, not to scale)
+============================================================ */
+var SZ = 34; // unified sign size, keep consistent across all sign icons
+
+function svgSign(x, y, label, kind, rotateDeg){
+  // kind: warn (triangle), round (circle), info (rounded rect)
+  var half = SZ/2;
+  var shape = "";
+  if(kind === "warn"){
+    shape = '<polygon points="' + x + ',' + (y-half) + ' ' + (x+half) + ',' + (y+half) + ' ' + (x-half) + ',' + (y+half) + '" fill="#111827" stroke="#ff5d5d" stroke-width="2.5"/>';
+  } else if(kind === "round"){
+    shape = '<circle cx="' + x + '" cy="' + y + '" r="' + half + '" fill="#111827" stroke="#32CCFE" stroke-width="2.5"/>';
+    if(rotateDeg !== undefined){
+      shape += '<g transform="translate(' + x + ',' + y + ') rotate(' + rotateDeg + ')"><path d="M -9 0 L 6 0 M 6 0 L 0 -6 M 6 0 L 0 6" stroke="#32CCFE" stroke-width="2.5" fill="none" stroke-linecap="round"/></g>';
+    }
+  } else if(kind === "closed"){
+    shape = '<rect x="' + (x-half) + '" y="' + (y-half) + '" width="' + SZ + '" height="' + SZ + '" rx="4" fill="#111827" stroke="#ff5d5d" stroke-width="2.5"/>';
+  } else {
+    shape = '<rect x="' + (x-half) + '" y="' + (y-half) + '" width="' + SZ + '" height="' + SZ + '" rx="4" fill="#111827" stroke="#8fa3bd" stroke-width="2"/>';
+  }
+  return shape;
+}
+
+function svgLabel(x, y, text, anchor){
+  return '<text x="' + x + '" y="' + y + '" font-size="9.5" fill="#8fa3bd" text-anchor="' + (anchor||"middle") + '" font-family="Barlow, sans-serif">' + text + '</text>';
+}
+
+function renderDiagram(state, orientation){
+  var h = state;
+  var portrait = orientation === "0";
+  var W = portrait ? 320 : 560;
+  var H = portrait ? 560 : 320;
+  var axisLen = portrait ? H : W;      // length along travel direction
+  var roadCx = portrait ? W/2 : H/2;   // road centre on cross axis
+  var roadWidth = 70;
+
+  // fractional positions along the axis (0 = far/approach, 1 = near/end)
+  var pWarn = 0.08, pRoundel = 0.16, pNarrows = 0.25, pTaperStart = 0.31,
+      pTaperEnd = 0.47, pWorksStart = 0.47, pWorksEnd = h.impact === "full" ? 0.68 : 0.73,
+      pClosedSign = 0.70, pEndSign = 0.87;
+
+  function axisPos(frac){ return 20 + frac * (axisLen - 40); }
+  function pt(frac, offset){
+    var a = axisPos(frac);
+    if(portrait){ return { x: roadCx + offset, y: a }; }
+    return { x: a, y: roadCx + offset };
+  }
+
+  var svg = "";
+  var signOffset = roadWidth/2 + SZ/2 + 14; // consistent distance of signs from carriageway edge
+
+  // Road surface
+  if(portrait){
+    svg += '<rect x="' + (roadCx-roadWidth/2) + '" y="0" width="' + roadWidth + '" height="' + H + '" fill="#1a2a42" stroke="#2a3d5c"/>';
+    svg += '<line x1="' + roadCx + '" y1="0" x2="' + roadCx + '" y2="' + H + '" stroke="#3d5273" stroke-width="2" stroke-dasharray="10 8"/>';
+  } else {
+    svg += '<rect x="0" y="' + (roadCx-roadWidth/2) + '" width="' + W + '" height="' + roadWidth + '" fill="#1a2a42" stroke="#2a3d5c"/>';
+    svg += '<line x1="0" y1="' + roadCx + '" x2="' + W + '" y2="' + roadCx + '" stroke="#3d5273" stroke-width="2" stroke-dasharray="10 8"/>';
+  }
+
+  // Direction arrow (travel direction = increasing frac)
+  var da = pt(0.02, 0);
+  svg += svgLabel(da.x, da.y - (portrait?0:0), portrait ? "TRAFFIC" : "", "middle");
+
+  // Advance warning sign
+  var p1 = pt(pWarn, signOffset);
+  svg += svgSign(p1.x, p1.y, "", "warn");
+  svg += svgLabel(p1.x, p1.y + SZ/2 + 12, "Road Works Ahead");
+  svg += svgLabel(p1.x, p1.y + SZ/2 + 23, tmSitingLabel(getTMCategory(h)), "middle");
+
+  // Speed roundel
+  if(h.roadType !== "motorway"){
+    var p2 = pt(pRoundel, signOffset);
+    svg += svgSign(p2.x, p2.y, "", "round");
+    svg += svgLabel(p2.x, p2.y + SZ/2 + 12, h.speed + " mph");
+  }
+
+  // Road narrows
+  var p3 = pt(pNarrows, signOffset);
+  svg += svgSign(p3.x, p3.y, "", "warn");
+  svg += svgLabel(p3.x, p3.y + SZ/2 + 12, "Narrows");
+
+  // Taper cones
+  var coneCount = 7;
+  for(var i=0;i<=coneCount;i++){
+    var frac = pTaperStart + (pTaperEnd - pTaperStart) * (i/coneCount);
+    var lateral = (roadWidth/2 - 4) * (1 - i/coneCount) + 4; // converge toward centre-ish edge
+    var cp = pt(frac, lateral);
+    svg += '<circle cx="' + cp.x + '" cy="' + cp.y + '" r="4" fill="#ffb547"/>';
+  }
+  var tlabel = pt((pTaperStart+pTaperEnd)/2, roadWidth/2 + 28);
+  svg += svgLabel(tlabel.x, tlabel.y, "Taper " + getTMCategory(h).taper + "m");
+
+  // Impact-specific
+  if(h.impact === "half"){
+    var p4 = pt(pWorksStart + 0.02, signOffset);
+    svg += svgSign(p4.x, p4.y, "", "round", 0);
+    svg += svgLabel(p4.x, p4.y + SZ/2 + 12, "Keep Right");
+    svg += svgLabel(p4.x, p4.y + SZ/2 + 23, "(arrow away from works)");
+    // barrier line along the closed half
+    var b1 = pt(pWorksStart, -roadWidth/2+6);
+    var b2 = pt(pWorksEnd, -roadWidth/2+6);
+    if(portrait){
+      svg += '<line x1="' + b1.x + '" y1="' + b1.y + '" x2="' + b2.x + '" y2="' + b2.y + '" stroke="#ff5d5d" stroke-width="4"/>';
+    } else {
+      svg += '<line x1="' + b1.x + '" y1="' + b1.y + '" x2="' + b2.x + '" y2="' + b2.y + '" stroke="#ff5d5d" stroke-width="4"/>';
+    }
+  } else if(h.impact === "full"){
+    var p5 = pt(pClosedSign, signOffset);
+    svg += svgSign(p5.x, p5.y, "", "closed");
+    svg += svgLabel(p5.x, p5.y + SZ/2 + 12, "Road Closed");
+    // kerb to kerb barrier
+    var kb1 = pt(pWorksStart, -roadWidth/2+2);
+    var kb2 = pt(pWorksStart, roadWidth/2-2);
+    svg += '<line x1="' + kb1.x + '" y1="' + kb1.y + '" x2="' + kb2.x + '" y2="' + kb2.y + '" stroke="#ff5d5d" stroke-width="4"/>';
+  } else if(h.impact === "footpath"){
+    var fb1 = pt(pWorksStart, roadWidth/2 - 2);
+    var fb2 = pt(pWorksEnd, roadWidth/2 - 2);
+    svg += '<line x1="' + fb1.x + '" y1="' + fb1.y + '" x2="' + fb2.x + '" y2="' + fb2.y + '" stroke="#ff5d5d" stroke-width="4"/>';
+    var fl = pt((pWorksStart+pWorksEnd)/2, roadWidth/2 + 18);
+    svg += svgLabel(fl.x, fl.y, "Min. 1.0m pedestrian clearance");
+  }
+
+  // works zone + vehicle
+  var wz1 = pt(pWorksStart, 0);
+  var wz2 = pt(pWorksEnd, 0);
+  var wzLen = Math.abs(portrait ? (wz2.y-wz1.y) : (wz2.x-wz1.x));
+  if(portrait){
+    svg += '<rect x="' + (roadCx-roadWidth/2+6) + '" y="' + wz1.y + '" width="' + (roadWidth-12) + '" height="' + wzLen + '" fill="rgba(50,204,254,0.14)" stroke="#32CCFE" stroke-dasharray="4 3"/>';
+    svg += '<rect x="' + (roadCx-14) + '" y="' + (wz1.y + wzLen/2 - 10) + '" width="28" height="20" rx="3" fill="#32CCFE"/>';
+  } else {
+    svg += '<rect x="' + wz1.x + '" y="' + (roadCx-roadWidth/2+6) + '" width="' + wzLen + '" height="' + (roadWidth-12) + '" fill="rgba(50,204,254,0.14)" stroke="#32CCFE" stroke-dasharray="4 3"/>';
+    svg += '<rect x="' + (wz1.x + wzLen/2 - 14) + '" y="' + (roadCx-10) + '" width="28" height="20" rx="3" fill="#32CCFE"/>';
+  }
+  var wl = pt((pWorksStart+pWorksEnd)/2, roadWidth/2 + (h.impact==="footpath"?32:28));
+  svg += svgLabel(wl.x, wl.y, "Works Zone");
+
+  // end of works sign
+  var p6 = pt(pEndSign, signOffset);
+  svg += svgSign(p6.x, p6.y, "", "info");
+  svg += svgLabel(p6.x, p6.y + SZ/2 + 12, "End of Works");
+
+  var viewBox = "0 0 " + W + " " + H;
+  return '<svg viewBox="' + viewBox + '" width="' + W + '" height="' + H + '" xmlns="http://www.w3.org/2000/svg" style="background:#0d1f35">' + svg + '</svg>';
+}
+
+function renderDiagramPanel(){
+  var wrap = qs("#diagram-wrap");
+  if(!wrap){ return; } // diagram card removed - superseded by layout.html
+  try{
+    wrap.innerHTML = renderDiagram(STATE.home, STATE.diagramOrient);
+  }catch(err){
+    wrap.innerHTML = '<div style="padding:16px;color:#ff5d5d;font-size:13px;">Diagram failed to render: ' +
+      (err && err.message ? err.message.replace(/[<>&]/g, "") : "unknown error") +
+      '. Please use the thumbs-down button to report this.</div>';
+    return;
+  }
+  // Don't rely on CSS width:100%;height:auto to derive height from the SVG's viewBox
+  // aspect ratio — compute it explicitly in pixels instead, same reasoning as the
+  // screen-container height fix: don't depend on automatic sizing behaving as spec'd
+  // if it can just be computed directly.
+  var svgEl = wrap.querySelector("svg");
+  if(svgEl){
+    var vb = (svgEl.getAttribute("viewBox") || "").split(/\s+/).map(Number);
+    if(vb.length === 4 && vb[2] > 0){
+      var wrapWidth = wrap.getBoundingClientRect().width || wrap.clientWidth;
+      var innerWidth = Math.max(wrapWidth - 20, 100); // minus .diagram-wrap's own padding
+      var aspect = vb[3] / vb[2];
+      svgEl.style.width = innerWidth + "px";
+      svgEl.style.height = Math.round(innerWidth * aspect) + "px";
+      svgEl.style.display = "block";
+    }
+  }
+  var legend = qs("#diagram-legend");
+  if(!legend){ return; }
+  legend.innerHTML =
+    '<span><i style="background:#ff5d5d"></i>Warning / closure sign</span>' +
+    '<span><i style="background:#32CCFE"></i>Works zone / vehicle</span>' +
+    '<span><i style="background:#ffb547"></i>Cone taper</span>';
+}
+
+function initDiagramToggle(){
+  qsa(".diagram-toggle .chip").forEach(function(btn){
+    on(btn, "click", function(){
+      qsa(".diagram-toggle .chip").forEach(function(b){ b.classList.remove("selected"); });
+      btn.classList.add("selected");
+      STATE.diagramOrient = btn.getAttribute("data-orient");
+      renderDiagramPanel();
+    });
+  });
+}
+
+window.renderDiagram = renderDiagram;
+window.renderDiagramPanel = renderDiagramPanel;
+window.initDiagramToggle = initDiagramToggle;
+</script>
+<script>
+/* ============================================================
+   WALK-OUT MODE
+============================================================ */
+var GPS_NOISE_THRESHOLD_M = 2;   // ignore movement smaller than this (GPS jitter)
+var GPS_MAX_ACCURACY_M = 25;     // ignore fixes worse than this
+
+function haversineMeters(lat1, lon1, lat2, lon2){
+  var R = 6371000;
+  var toRad = function(d){ return d * Math.PI / 180; };
+  var dLat = toRad(lat2-lat1);
+  var dLon = toRad(lon2-lon1);
+  var a = Math.sin(dLat/2)*Math.sin(dLat/2) +
+          Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLon/2)*Math.sin(dLon/2);
+  var c = 2*Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R*c;
+}
+
+function buildWalkoutSigns(){
+  var h = STATE.home;
+  var cat = getTMCategory(h);
+  var siting = tmSitingDistance(cat);
+  var list = [];
+  list.push({ name:"Road Works Ahead", segment: siting });
+  if(h.roadType !== "motorway"){
+    list.push({ name:"Speed Roundel", segment: 15 });
+  }
+  list.push({ name:"Road Narrows", segment: 15 });
+  list.push({ name:"Taper Cones — Start", segment: Math.max(cat.taper - 25, 10) });
+
+  if(h.impact === "half"){
+    list.push({ name:"Keep Right / Keep Left Sign", segment: 25 });
+  } else if(h.impact === "full"){
+    list.push({ name:"Road Closed Sign", segment: 25 });
+  } else if(h.impact === "footpath"){
+    list.push({ name:"Barrier Start", segment: 20 });
+  }
+
+  list.push({ name:"Information Board", segment: 5 });
+  list.push({ name:"End of Works Sign", segment: tmEndDistance(cat) });
+
+  STATE.walkout.signs = list;
+  STATE.walkout.index = 0;
+  STATE.walkout.traveled = 0;
+  updateWalkoutUI();
+  startWalkoutWatch();
+}
+
+function currentWalkoutSign(){
+  return STATE.walkout.signs[STATE.walkout.index] || null;
+}
+
+function updateWalkoutUI(){
+  var total = STATE.walkout.signs.length;
+  var idx = STATE.walkout.index;
+  var sign = currentWalkoutSign();
+
+  if(!sign){
+    qs("#wo-sign-name").textContent = "All signs placed";
+    qs("#wo-distance").textContent = "0";
+    qs("#wo-arrow").textContent = "\u2713";
+    qs("#wo-progress-fill").style.width = "100%";
+    qs("#wo-progress-label").textContent = total + " of " + total + " signs placed";
+    return;
+  }
+
+  var remaining = Math.max(sign.segment - STATE.walkout.traveled, 0);
+  qs("#wo-sign-name").textContent = sign.name;
+  qs("#wo-distance").textContent = remaining < 1 ? remaining.toFixed(1) : Math.round(remaining);
+  qs("#wo-arrow").textContent = remaining <= 0 ? "\u2713" : "\u2191";
+  var pct = Math.round((idx / total) * 100);
+  qs("#wo-progress-fill").style.width = pct + "%";
+  qs("#wo-progress-label").textContent = idx + " of " + total + " signs placed";
+}
+
+function addWalkoutDistance(metres){
+  if(!currentWalkoutSign()) return;
+  STATE.walkout.traveled += metres;
+  updateWalkoutUI();
+}
+
+function walkoutPlaced(){
+  if(!currentWalkoutSign()) return;
+  STATE.walkout.index += 1;
+  STATE.walkout.traveled = 0;
+  STATE.walkout.lastPos = null;
+  updateWalkoutUI();
+}
+
+function walkoutSkip(){
+  if(!currentWalkoutSign()) return;
+  STATE.walkout.index += 1;
+  STATE.walkout.traveled = 0;
+  STATE.walkout.lastPos = null;
+  updateWalkoutUI();
+}
+
+function walkoutReset(){
+  STATE.walkout.index = 0;
+  STATE.walkout.traveled = 0;
+  STATE.walkout.lastPos = null;
+  updateWalkoutUI();
+}
+
+function startWalkoutWatch(){
+  if(!navigator.geolocation) {
+    var s = qs("#gps-status");
+    if(s){ s.textContent = "GPS not available on this device — use manual distance buttons."; s.className = "gps-status stale"; }
+    return;
+  }
+  stopWalkoutWatch();
+  try{
+    STATE.walkout.watchId = navigator.geolocation.watchPosition(onWalkoutPosition, onWalkoutGpsError, {
+      enableHighAccuracy: true,
+      maximumAge: 2000,
+      timeout: 10000
+    });
+  }catch(err){
+    var s2 = qs("#gps-status");
+    if(s2){ s2.textContent = "GPS unavailable in this browser context (e.g. requires https:// or localhost) — use manual distance buttons."; s2.className = "gps-status stale"; }
+  }
+}
+
+function stopWalkoutWatch(){
+  if(STATE.walkout.watchId !== null && navigator.geolocation){
+    try{ navigator.geolocation.clearWatch(STATE.walkout.watchId); }catch(err){}
+  }
+  STATE.walkout.watchId = null;
+}
+
+function onWalkoutGpsError(){
+  var s = qs("#gps-status");
+  if(s){ s.textContent = "GPS signal unavailable — use manual distance buttons."; s.className = "gps-status stale"; }
+}
+
+function onWalkoutPosition(pos){
+  var s = qs("#gps-status");
+  var accuracy = pos.coords.accuracy;
+
+  if(accuracy > GPS_MAX_ACCURACY_M){
+    if(s){ s.textContent = "GPS signal weak (\u00b1" + Math.round(accuracy) + "m) — use manual buttons if needed."; s.className = "gps-status stale"; }
+  } else {
+    if(s){ s.textContent = "GPS live (\u00b1" + Math.round(accuracy) + "m)"; s.className = "gps-status live"; }
+  }
+
+  var last = STATE.walkout.lastPos;
+  if(last){
+    var delta = haversineMeters(last.lat, last.lon, pos.coords.latitude, pos.coords.longitude);
+    // Only count movement above the GPS noise floor — a stationary operative must not see the distance tick down.
+    if(delta >= GPS_NOISE_THRESHOLD_M && accuracy <= GPS_MAX_ACCURACY_M){
+      addWalkoutDistance(delta);
+      STATE.walkout.lastPos = { lat: pos.coords.latitude, lon: pos.coords.longitude };
+    }
+  } else {
+    STATE.walkout.lastPos = { lat: pos.coords.latitude, lon: pos.coords.longitude };
+  }
+}
+
+function initWalkoutScreen(){
+  on(qs("#wo-placed-btn"), "click", walkoutPlaced);
+  on(qs("#wo-skip-btn"), "click", walkoutSkip);
+  on(qs("#wo-reset-btn"), "click", walkoutReset);
+  qsa(".manual-btns button").forEach(function(btn){
+    on(btn, "click", function(){
+      addWalkoutDistance(parseFloat(btn.getAttribute("data-add")));
+    });
+  });
+}
+
+window.buildWalkoutSigns = buildWalkoutSigns;
+window.initWalkoutScreen = initWalkoutScreen;
+window.stopWalkoutWatch = stopWalkoutWatch;
+</script>
+<script>
+/* ============================================================
+   SITE RECORD
+============================================================ */
+var activePhotoSlot = null;
+
+function initSiteRecord(){
+  on(qs("#rec-crewlead"), "input", function(e){ STATE.record.crewLead = e.target.value; });
+  on(qs("#rec-permit"), "input", function(e){ STATE.record.permit = e.target.value; });
+
+  on(qs("#rec-capture-gps-btn"), "click", captureSiteGps);
+
+  qsa(".photo-slot").forEach(function(slot){
+    on(slot, "click", function(){
+      var idx = parseInt(slot.getAttribute("data-slot"), 10);
+      if(STATE.record.photos[idx]){ return; } // use the remove button instead
+      activePhotoSlot = idx;
+      qs("#photo-input").click();
+    });
+  });
+
+  on(qs("#photo-input"), "change", function(e){
+    var file = e.target.files && e.target.files[0];
+    if(!file || activePhotoSlot === null) return;
+    var reader = new FileReader();
+    reader.onload = function(evt){
+      STATE.record.photos[activePhotoSlot] = evt.target.result;
+      renderPhotoGrid();
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  });
+
+  on(qs("#rec-generate-pdf-btn"), "click", generateSitePdf);
+  renderPhotoGrid();
+}
+
+function captureSiteGps(){
+  var display = qs("#rec-gps-display");
+  if(!navigator.geolocation){
+    display.textContent = "GPS not available in this browser context (e.g. requires https:// or localhost).";
+    return;
+  }
+  display.textContent = "Capturing location...";
+  try{
+    navigator.geolocation.getCurrentPosition(function(pos){
+      STATE.record.gps = {
+        lat: pos.coords.latitude,
+        lon: pos.coords.longitude,
+        accuracy: pos.coords.accuracy,
+        time: new Date().toISOString()
+      };
+      display.textContent = STATE.record.gps.lat.toFixed(6) + ", " + STATE.record.gps.lon.toFixed(6) + " (\u00b1" + Math.round(STATE.record.gps.accuracy) + "m)";
+    }, function(){
+      display.textContent = "Could not capture GPS location — check device location permissions.";
+    }, { enableHighAccuracy:true, timeout:10000 });
+  }catch(err){
+    display.textContent = "GPS unavailable in this browser context (e.g. requires https:// or localhost).";
+  }
+}
+
+function renderPhotoGrid(){
+  qsa(".photo-slot").forEach(function(slot){
+    var idx = parseInt(slot.getAttribute("data-slot"), 10);
+    var data = STATE.record.photos[idx];
+    slot.innerHTML = "";
+    if(data){
+      var img = document.createElement("img");
+      img.src = data;
+      slot.appendChild(img);
+      var rm = document.createElement("button");
+      rm.type = "button";
+      rm.className = "rm";
+      rm.textContent = "\u00d7";
+      on(rm, "click", function(evt){
+        evt.stopPropagation();
+        STATE.record.photos[idx] = null;
+        renderPhotoGrid();
+      });
+      slot.appendChild(rm);
+    } else {
+      slot.textContent = "+";
+    }
+  });
+}
+
+function getCompletedGuideItems(){
+  var checked = qsa("#guide-checklist input[type=checkbox]:checked");
+  return checked.map(function(cb){
+    var span = cb.nextSibling;
+    return span ? span.textContent : "";
+  });
+}
+
+function generateSitePdf(){
+  if(typeof window.jspdf === "undefined"){
+    alert("PDF library failed to load — check your internet connection and try again.");
+    return;
+  }
+  var jsPDF = window.jspdf.jsPDF;
+  var doc = new jsPDF({ unit:"mm", format:"a4" });
+  var y = 18;
+  var left = 15;
+  var pageWidth = 210;
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(18);
+  doc.text("ConesOut Site Record", left, y);
+  y += 9;
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  doc.text("Generated: " + new Date().toLocaleString(), left, y);
+  y += 8;
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(12);
+  doc.text("Crew & Job Details", left, y);
+  y += 6;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  doc.text("Crew Lead: " + (STATE.record.crewLead || "-"), left, y); y += 6;
+  doc.text("Permit / Job Reference: " + (STATE.record.permit || "-"), left, y); y += 6;
+  doc.text("Logged in as: " + (STATE.user ? STATE.user.username : "-"), left, y); y += 8;
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(12);
+  doc.text("Site Setup", left, y);
+  y += 6;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  var h = STATE.home;
+  doc.text("Road Type: " + (ROAD_LABELS[h.roadType] || "-"), left, y); y += 6;
+  doc.text("Speed Limit: " + (h.speed || "-") + " mph", left, y); y += 6;
+  doc.text("Duration: " + (h.duration === "short" ? "Under 15 min" : "Over 15 min"), left, y); y += 6;
+  doc.text("Works Impact: " + (IMPACT_LABELS[h.impact] || "-"), left, y); y += 8;
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(12);
+  doc.text("GPS Location", left, y);
+  y += 6;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  if(STATE.record.gps){
+    doc.text(STATE.record.gps.lat.toFixed(6) + ", " + STATE.record.gps.lon.toFixed(6) + " (\u00b1" + Math.round(STATE.record.gps.accuracy) + "m)", left, y);
+  } else {
+    doc.text("Not captured", left, y);
+  }
+  y += 10;
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(12);
+  doc.text("Steps Completed", left, y);
+  y += 6;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9.5);
+  var items = getCompletedGuideItems();
+  if(items.length === 0){
+    doc.text("No checklist items marked complete.", left, y);
+    y += 6;
+  } else {
+    items.forEach(function(text){
+      if(y > 275){ doc.addPage(); y = 18; }
+      var lines = doc.splitTextToSize("- " + text, pageWidth - left*2);
+      doc.text(lines, left, y);
+      y += lines.length * 5;
+    });
+  }
+
+  var photos = STATE.record.photos.filter(function(p){ return !!p; });
+  if(photos.length){
+    doc.addPage();
+    y = 18;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(12);
+    doc.text("Site Photos", left, y);
+    y += 8;
+    var imgW = 85, imgH = 65, col = 0;
+    photos.forEach(function(data){
+      var x = left + col * (imgW + 8);
+      try{ doc.addImage(data, "JPEG", x, y, imgW, imgH); }catch(e){}
+      col++;
+      if(col > 1){ col = 0; y += imgH + 8; }
+    });
+  }
+
+  var filename = "conesout-site-record-" + Date.now() + ".pdf";
+  try{
+    doc.output("dataurlnewwindow");
+  }catch(e){
+    doc.save(filename);
+  }
+}
+
+window.initSiteRecord = initSiteRecord;
+</script>
+<style>
+#admin-overlay{
+  position:fixed;inset:0;z-index:400;background:rgba(0,0,0,0.6);
+  display:none;align-items:center;justify-content:center;padding:20px;
+}
+#admin-overlay.open{display:flex;}
+.admin-card{
+  width:100%;max-width:400px;max-height:80vh;overflow-y:auto;
+  background:var(--navy2);border:1px solid var(--border);border-radius:var(--radius);
+  padding:20px;
+}
+.admin-card h2{color:var(--cyan);font-size:20px;margin-bottom:14px;}
+.admin-user-row{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:8px 0;border-bottom:1px solid var(--border);font-size:13.5px;
+}
+.admin-user-row button{background:none;border:none;color:var(--red);cursor:pointer;font-size:12px;text-decoration:underline;}
+#admin-status{font-size:12px;color:var(--muted);margin-top:8px;min-height:14px;}
+</style>
+
+<div id="admin-overlay">
+  <div class="admin-card">
+    <h2>Manage Test Users</h2>
+    <div id="admin-user-list"></div>
+    <div class="spacer"></div>
+    <div class="field">
+      <label for="admin-new-username">New Username</label>
+      <input type="text" id="admin-new-username">
+    </div>
+    <div class="field">
+      <label for="admin-new-passcode">New Passcode</label>
+      <input type="text" id="admin-new-passcode">
+    </div>
+    <div class="field">
+      <label for="admin-new-role">Role</label>
+      <select id="admin-new-role">
+        <option value="Operative">Operative</option>
+        <option value="Admin">Admin</option>
+      </select>
+    </div>
+    <button type="button" class="btn btn-primary btn-sm" id="admin-add-btn">Add User</button>
+    <div id="admin-status"></div>
+    <div class="spacer"></div>
+    <button type="button" class="btn btn-secondary" id="admin-close-btn">Close</button>
+  </div>
+</div>
+<script>
+/* ============================================================
+   ADMIN PANEL (hidden feature — toggle via ADMIN_FEATURE_ENABLED)
+============================================================ */
+function supabaseHeaders(extra){
+  var base = {
+    "apikey": SUPABASE_ANON_KEY,
+    "Authorization": "Bearer " + SUPABASE_ANON_KEY,
+    "Content-Type": "application/json"
+  };
+  if(extra){ for(var k in extra){ base[k] = extra[k]; } }
+  return base;
+}
+
+function loadAdminUsers(){
+  var url = SUPABASE_URL + "/rest/v1/test_users?select=username,role&order=username";
+  fetch(url, { headers: supabaseHeaders() })
+    .then(function(res){ return res.json(); })
+    .then(function(rows){ renderAdminUserList(rows || []); })
+    .catch(function(){ qs("#admin-status").textContent = "Could not load user list."; });
+}
+
+function renderAdminUserList(rows){
+  var list = qs("#admin-user-list");
+  list.innerHTML = "";
+  rows.forEach(function(u){
+    var row = document.createElement("div");
+    row.className = "admin-user-row";
+    var label = document.createElement("span");
+    label.textContent = u.username + " — " + (u.role || "Operative");
+    var del = document.createElement("button");
+    del.type = "button";
+    del.textContent = "Remove";
+    on(del, "click", function(){ deleteAdminUser(u.username); });
+    row.appendChild(label);
+    row.appendChild(del);
+    list.appendChild(row);
+  });
+}
+
+function deleteAdminUser(username){
+  if(!confirm("Remove user \"" + username + "\"?")) return;
+  var url = SUPABASE_URL + "/rest/v1/test_users?username=eq." + encodeURIComponent(username);
+  fetch(url, { method:"DELETE", headers: supabaseHeaders() })
+    .then(function(){ loadAdminUsers(); })
+    .catch(function(){ qs("#admin-status").textContent = "Could not remove user."; });
+}
+
+function addAdminUser(){
+  var username = qs("#admin-new-username").value.trim();
+  var passcode = qs("#admin-new-passcode").value.trim();
+  var role = qs("#admin-new-role").value;
+  var status = qs("#admin-status");
+  if(!username || !passcode){
+    status.textContent = "Enter a username and passcode.";
+    return;
+  }
+  var url = SUPABASE_URL + "/rest/v1/test_users";
+  fetch(url, {
+    method: "POST",
+    headers: supabaseHeaders({ "Prefer": "return=minimal" }),
+    body: JSON.stringify({ username: username, passcode: passcode, role: role })
+  })
+  .then(function(res){
+    if(!res.ok) throw new Error();
+    status.textContent = "User added.";
+    qs("#admin-new-username").value = "";
+    qs("#admin-new-passcode").value = "";
+    loadAdminUsers();
+  })
+  .catch(function(){ status.textContent = "Could not add user — username may already exist."; });
+}
+
+function initAdminPanel(){
+  if(!ADMIN_FEATURE_ENABLED) return;
+  // Long-press the brand logo to open the admin panel when logged in as Admin.
+  var brand = qs("#top-bar .brand");
+  var pressTimer = null;
+  on(brand, "touchstart", function(){ pressTimer = setTimeout(openAdminPanel, 900); });
+  on(brand, "touchend", function(){ clearTimeout(pressTimer); });
+  on(brand, "mousedown", function(){ pressTimer = setTimeout(openAdminPanel, 900); });
+  on(brand, "mouseup", function(){ clearTimeout(pressTimer); });
+
+  on(qs("#admin-close-btn"), "click", function(){ qs("#admin-overlay").classList.remove("open"); });
+  on(qs("#admin-add-btn"), "click", addAdminUser);
+}
+
+function openAdminPanel(){
+  if(!STATE.user || STATE.user.role !== "Admin") return;
+  qs("#admin-overlay").classList.add("open");
+  loadAdminUsers();
+}
+
+window.initAdminPanel = initAdminPanel;
+</script>
+<script>
+document.addEventListener("DOMContentLoaded", function(){
+  window.__conesout_init_auth_nav();
+  initHomeScreen();
+  initDiagramToggle();
+  initWalkoutScreen();
+  initSiteRecord();
+  initAdminPanel();
+
+  // Belt-and-braces: some emulated/DevTools viewport contexts compute dvh/vh unreliably.
+  // Force #app-shell to the exact measured viewport height in pixels as a hard guarantee,
+  // on top of (not instead of) the CSS height:100dvh rule.
+  function pinAppShellHeight(){
+    var shell = qs("#app-shell");
+    if(shell) shell.style.height = window.innerHeight + "px";
+  }
+
+  // CRITICAL FIX: flex-shrink on #screen-container was not reliably engaging in some
+  // browser contexts, letting it render at its full natural content height instead of
+  // being squeezed to fit — which pushed the action bar and bottom nav off-screen even
+  // though overflow:hidden was clipping them from view. Rather than depend on flexbox
+  // shrink behavior, compute the available height directly and set it explicitly. This
+  // cannot fail regardless of any flex-shrink quirk since it's pure arithmetic.
+  function pinScreenContainerHeight(){
+    var shell = qs("#app-shell");
+    var topBar = qs("#top-bar");
+    var actionBar = qs("#home-action-bar");
+    var nav = qs("#bottom-nav");
+    var container = qs("#screen-container");
+    if(!shell || !topBar || !nav || !container) return;
+    var shellH = shell.getBoundingClientRect().height || window.innerHeight;
+    var topH = topBar.getBoundingClientRect().height;
+    var actionH = (actionBar && actionBar.classList.contains("active")) ? actionBar.getBoundingClientRect().height : 0;
+    var navH = nav.getBoundingClientRect().height;
+    var available = shellH - topH - actionH - navH;
+    container.style.height = Math.max(available, 100) + "px";
+  }
+
+  function pinLayout(){
+    pinAppShellHeight();
+    pinScreenContainerHeight();
+  }
+  pinLayout();
+  window.addEventListener("resize", pinLayout);
+  window.addEventListener("orientationchange", function(){ setTimeout(pinLayout, 250); });
+  if(window.visualViewport){
+    window.visualViewport.addEventListener("resize", pinLayout);
+  }
+  window.__conesout_pinLayout = pinLayout; // switchScreen calls this after toggling the action bar
+
+  // Layout diagnostic panel: shows exact measured dimensions of every layout-critical
+  // element directly on the page. Toggle by tapping the ConesOut logo 3 times fast.
+  // This exists so layout bugs can be diagnosed from one screenshot, no DevTools needed.
+  function showLayoutDiagnostics(){
+    var ids = ["app-shell","top-bar","screen-container","home-action-bar","bottom-nav","generate-btn","screen-home","screen-guide","diagram-wrap","guide-checklist","guide-content","guide-empty"];
+    var lines = ["viewport: " + window.innerWidth + "x" + window.innerHeight, ""];
+    ids.forEach(function(id){
+      var el = document.getElementById(id);
+      if(!el){ lines.push(id + ": NOT FOUND"); return; }
+      var r = el.getBoundingClientRect();
+      var cs = window.getComputedStyle(el);
+      var extra = " innerHTML.length=" + (el.innerHTML ? el.innerHTML.length : 0);
+      lines.push(id + ": top=" + Math.round(r.top) + " bottom=" + Math.round(r.bottom) + " h=" + Math.round(r.height) + " display=" + cs.display + " visible=" + (r.height > 0 && r.width > 0) + extra);
+    });
+    var svgEl = document.querySelector("#diagram-wrap svg");
+    lines.push("");
+    lines.push("diagram-wrap > svg found: " + !!svgEl);
+    if(svgEl){
+      var svgR = svgEl.getBoundingClientRect();
+      lines.push("svg: w=" + Math.round(svgR.width) + " h=" + Math.round(svgR.height) + " viewBox=" + svgEl.getAttribute("viewBox"));
+    }
+    lines.push("STATE.guide set: " + !!(window.STATE && window.STATE.guide));
+    lines.push("STATE.diagramOrient: " + (window.STATE ? window.STATE.diagramOrient : "?"));
+    var panel = document.getElementById("__layout_diag__");
+    if(!panel){
+      panel = document.createElement("div");
+      panel.id = "__layout_diag__";
+      panel.style.cssText = "position:fixed;bottom:0;left:0;right:0;z-index:99998;background:#052b1a;color:#7cffb0;font:10px/1.4 monospace;padding:8px 10px;max-height:50vh;overflow:auto;border-top:3px solid #32CCFE;white-space:pre-wrap;";
+      document.body.appendChild(panel);
+    }
+    panel.textContent = "LAYOUT DIAGNOSTICS (tap logo 3x to hide):\n" + lines.join("\n");
+  }
+  var logoTapCount = 0, logoTapTimer = null;
+  var brandEl = qs("#top-bar .brand");
+  on(brandEl, "click", function(){
+    logoTapCount++;
+    clearTimeout(logoTapTimer);
+    logoTapTimer = setTimeout(function(){ logoTapCount = 0; }, 600);
+    if(logoTapCount >= 3){
+      logoTapCount = 0;
+      var panel = document.getElementById("__layout_diag__");
+      if(panel){ panel.remove(); } else { showLayoutDiagnostics(); }
+    }
+  });
+
+  // Service worker for offline/PWA support — optional, fails silently if sw.js is not present.
+  if("serviceWorker" in navigator){
+    window.addEventListener("load", function(){
+      navigator.serviceWorker.register("sw.js").catch(function(){ /* no service worker file yet — app still works online */ });
+    });
+  }
+});
+</script>
+<script>
+/* --- ConesOut layout page opener (sandboxed, safe to remove) --- */
+(function () {
+  "use strict";
+  try {
+    var b = document.getElementById("openLayoutBtn");
+    if (!b) { return; }
+    b.addEventListener("click", function () {
+      var url = "layout.html";
+      try {
+        var h = (window.STATE && window.STATE.home) ? window.STATE.home : null;
+        if (h && h.roadType) {
+          var setup = "half";
+          if (h.impact === "full") { setup = "full"; }
+          if (h.impact === "footpath") { setup = "foot"; }
+          var road = "";
+          var sp = Number(h.speed);
+          if (h.roadType === "urban" || h.roadType === "rural") {
+            if (sp <= 30) { road = "s30"; }
+            else if (sp === 40) { road = "s40"; }
+            else if (sp === 50) { road = "s50"; }
+            else { road = "s60"; }
+          } else if (h.roadType === "dual" && sp <= 40) {
+            road = "d40";
+          }
+          url = "layout.html?setup=" + setup + (road ? "&road=" + road : "");
+        }
+      } catch (inner) {
+        url = "layout.html";
+      }
+      window.open(url, "_blank");
+    });
+  } catch (outer) {
+    /* never let this block break the app */
+  }
+})();
+</script>
+</body>
+</html>
